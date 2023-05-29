@@ -3,7 +3,7 @@ const cors = require('cors');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config()
 const app = express()
-const port = process.env.PORT || 5000 ;
+const port = process.env.PORT || 5000;
 
 // middleware 
 app.use(cors())
@@ -37,19 +37,31 @@ async function run() {
 
     // user related api 
 
-    app.get('/users', async(req, res)=>{
+    app.get('/users', async (req, res) => {
       const result = await userCollection.find().toArray()
       res.send(result)
     })
 
-    app.post('/users', async (req, res)=>{
-      const user = req.body ;
-      const query = {email : user.email };
+    app.post('/users', async (req, res) => {
+      const user = req.body;
+      const query = { email: user.email };
       const existingUser = await userCollection.findOne(query)
-      if(existingUser){
-        return res.send({message: 'user is already exist'})
+      if (existingUser) {
+        return res.send({ message: 'user is already exist' })
       }
       const result = await userCollection.insertOne(user);
+      res.send(result)
+    })
+
+    app.patch('/users/admin/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          role: 'admin'
+        },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc) ;
       res.send(result)
     })
 
@@ -57,39 +69,39 @@ async function run() {
 
     // review and menu related api
 
-    app.get('/menu', async(req, res)=>{
-        const result = await menuCollection.find().toArray()
-        res.send(result)
+    app.get('/menu', async (req, res) => {
+      const result = await menuCollection.find().toArray()
+      res.send(result)
     })
 
-    app.get('/reviews', async(req, res)=>{
-        const result = await reviewCollection.find().toArray()
-        res.send(result)
+    app.get('/reviews', async (req, res) => {
+      const result = await reviewCollection.find().toArray()
+      res.send(result)
     })
 
-  // card apis
+    // card apis
 
-    app.get('/cards', async(req, res)=>{
-      let email = {} ;
-      if(req.query?.email){
-        email = req.query.email ;
+    app.get('/cards', async (req, res) => {
+      let email = {};
+      if (req.query?.email) {
+        email = req.query.email;
       }
-      const query = {email : email} ;
+      const query = { email: email };
       const result = await cardCollection.find(query).toArray()
       res.send(result)
     })
 
-    app.post('/cards', async(req, res)=>{
-      const card = req.body ;
-      console.log(card) 
+    app.post('/cards', async (req, res) => {
+      const card = req.body;
+      console.log(card)
       const result = await cardCollection.insertOne(card)
       res.send(result)
     })
 
-    app.delete('/cards/:id', async(req, res)=> {
-      const id = req.params.id ;
-      const query = {_id : new ObjectId(id)} ;
-      const result = await cardCollection.deleteOne(query) ;
+    app.delete('/cards/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await cardCollection.deleteOne(query);
       res.send(result)
     })
 
@@ -107,10 +119,10 @@ run().catch(console.dir);
 
 
 
-app.get('/', (req, res)=> {
-    res.send('Bistro Boss is Sitting')
+app.get('/', (req, res) => {
+  res.send('Bistro Boss is Sitting')
 })
 
-app.listen(port, ()=>{
-    console.log('The bistro server is running on port', port)
+app.listen(port, () => {
+  console.log('The bistro server is running on port', port)
 })
