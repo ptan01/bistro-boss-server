@@ -48,6 +48,7 @@ async function run() {
     const menuCollection = client.db('bistroDb').collection('menu')
     const reviewCollection = client.db('bistroDb').collection('reviews')
     const cardCollection = client.db('bistroDb').collection('cards')
+    const paymentCollection = client.db('bistroDb').collection('payments')
 
 
     // Warning: use verifyJWT before using verifyAdmin
@@ -197,6 +198,18 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const result = await cardCollection.deleteOne(query);
       res.send(result)
+    })
+
+    // payment collection related api 
+    
+    app.post('/payments', async(req, res)=>{
+      const payment = req.body ;
+      const insartResult = await paymentCollection.insertOne(payment);
+
+
+      const query = {_id : {$in : payment.cartItems.map(id => new ObjectId(id))}} ;
+      const deleteResult = await cardCollection.deleteMany(query) ;
+      res.send({insartResult, deleteResult})
     })
 
 
