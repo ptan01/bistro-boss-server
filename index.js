@@ -139,7 +139,7 @@ async function run() {
       res.send(result)
     })
 
-   
+
 
     app.delete('/menu/:id', verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
@@ -173,13 +173,13 @@ async function run() {
 
     // stripe payment intent api
 
-    app.post('/create-payment-intent', verifyJWT, async(req, res)=>{
-      const {price} = req.body ;
-      const calculateOrderAmount = price * 100 ;
+    app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+      const { price } = req.body;
+      const calculateOrderAmount = price * 100;
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: calculateOrderAmount ,
-        currency:"usd",
-        payment_method_types : ['card']
+        amount: calculateOrderAmount,
+        currency: "usd",
+        payment_method_types: ['card']
       })
       res.send({
         clientSecret: paymentIntent.client_secret,
@@ -201,32 +201,32 @@ async function run() {
     })
 
     // payment collection related api 
-    
-    app.post('/payments', async(req, res)=>{
-      const payment = req.body ;
+
+    app.post('/payments', async (req, res) => {
+      const payment = req.body;
       const insartResult = await paymentCollection.insertOne(payment);
 
 
-      const query = {_id : {$in : payment.cartItems.map(id => new ObjectId(id))}} ;
-      const deleteResult = await cardCollection.deleteMany(query) ;
-      res.send({insartResult, deleteResult})
+      const query = { _id: { $in: payment.cartItems.map(id => new ObjectId(id)) } };
+      const deleteResult = await cardCollection.deleteMany(query);
+      res.send({ insartResult, deleteResult })
     })
 
-    app.get('/admin-stats',verifyJWT, verifyAdmin, async(req, res)=>{
-      const users = await userCollection.estimatedDocumentCount() ;
-      const products = await menuCollection.estimatedDocumentCount() ;
+    app.get('/admin-stats', verifyJWT, verifyAdmin, async (req, res) => {
+      const users = await userCollection.estimatedDocumentCount();
+      const products = await menuCollection.estimatedDocumentCount();
       const order = await paymentCollection.estimatedDocumentCount();
 
       const allOrder = await paymentCollection.aggregate([
         {
           $group: {
-            _id : null ,
-            total: {$sum : '$price' }
+            _id: null,
+            total: { $sum: '$price' }
           }
         }
-      ]).toArray() ;
+      ]).toArray();
 
-      const total = allOrder[0].total ;
+      const total = allOrder[0].total;
 
       res.send({
         users,
@@ -235,6 +235,37 @@ async function run() {
         total
       })
     })
+
+
+    app.get('/order-stats', async (req, res) => {
+      const pipeline = [
+        {
+          $lookup: {
+            from: 'menu',
+            localField: 'menuItems',
+            foreignField: '_id',
+            as: 'menuItems'
+          }
+        },
+        {
+          $unwind: '$menuItems'
+        },
+        {
+          $group: {
+            _id: '$menuItems.category',
+            count: { $sum: 1 },
+            totalPrice: { $sum: '$menuItems.price' }
+          }
+        }
+      ]
+    const result = await paymentCollection.aggregate(pipeline).toArray() ;
+
+    res.json(result)
+
+    
+    })
+
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
