@@ -212,6 +212,29 @@ async function run() {
       res.send({insartResult, deleteResult})
     })
 
+    app.get('/admin-stats',verifyJWT, verifyAdmin, async(req, res)=>{
+      const users = await userCollection.estimatedDocumentCount() ;
+      const products = await menuCollection.estimatedDocumentCount() ;
+      const order = await paymentCollection.estimatedDocumentCount();
+
+      const allOrder = await paymentCollection.aggregate([
+        {
+          $group: {
+            _id : null ,
+            total: {$sum : '$price' }
+          }
+        }
+      ]).toArray() ;
+
+      const total = allOrder[0].total ;
+
+      res.send({
+        users,
+        products,
+        order,
+        total
+      })
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
